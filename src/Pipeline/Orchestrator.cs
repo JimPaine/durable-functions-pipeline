@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
@@ -18,21 +19,26 @@ namespace Pipeline
             List<TransformedObject> items = context.GetInput<List<TransformedObject>>();            
 
             // call cleaner
+            List<Task<TransformedObject>> tasks = new List<Task<TransformedObject>>();
             foreach(TransformedObject item in items)
             {
-                await context.CallActivityAsync("CleanerActivity", item);
+                tasks.Add(context.CallActivityAsync<TransformedObject>("CleanerActivity", item));
             }
+            await Task.WhenAll(tasks);
             log.Info("Completed cleaner activities");
 
             // call enricher
+            items = tasks.Select(x => x.Result).ToList();
+            tasks = new List<Task<TransformedObject>>();
             foreach(TransformedObject item in items)
             {
-                await context.CallActivityAsync("EnricherActivity", item);
+                tasks.Add(context.CallActivityAsync<TransformedObject>("EnricherActivity", item));
             }
+            await Task.WhenAll(tasks);
             log.Info("Completed enricher activities");
 
             // call egress
-            await context.CallActivityAsync("EgressActivity", items);
+            await context.CallActivityAsync("EgressActivity", tasks.Select(x => x.Result).ToList());
         }
     }
 }
