@@ -47,7 +47,7 @@ $ az login
 Run deploy script
 
 ```
-$ cd funkyswagger
+$ cd durable-functions-pipeline
 $ ./deploy.sh {containername} {functionname} {subscriptionid}
 ```
 
